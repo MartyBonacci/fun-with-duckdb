@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DuckDB CSV Explorer</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #0a0a0f;
+      --bg-card: #12121a;
+      --bg-input: #1a1a24;
+      --accent: #22d3ee;
+      --accent-dim: #0891b2;
+      --text: #e4e4e7;
+      --text-dim: #71717a;
+      --border: #27272a;
+      --error: #f87171;
+      --success: #4ade80;
+      --warning: #fbbf24;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+      background-image: 
+        radial-gradient(ellipse at top left, rgba(34, 211, 238, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    header {
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .logo {
+      font-size: 2.5rem;
+      filter: grayscale(20%);
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+    
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    .card-header .icon {
+      color: var(--accent);
+    }
+    
+    .input-group {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    
+    input[type="text"], textarea {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    input[type="text"]:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+    }
+    
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    
+    button {
+      background: linear-gradient(135deg, var(--accent-dim) 0%, var(--accent) 100%);
+      color: var(--bg-dark);
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      white-space: nowrap;
+    }
+    
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(34, 211, 238, 0.3);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: var(--bg-input);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      border-color: var(--accent);
+      box-shadow: 0 4px 20px rgba(34, 211, 238, 0.1);
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+    }
+    
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1rem 0;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+    }
+    
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+    
+    .status.loading {
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      color: var(--accent);
+    }
+    
+    .status.error {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      color: var(--error);
+    }
+    
+    .status.success {
+      background: rgba(74, 222, 128, 0.1);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      color: var(--success);
+    }
+    
+    .status.warning {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      color: var(--warning);
+    }
+    
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .results-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+    
+    th {
+      background: var(--bg-input);
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--accent);
+      border-bottom: 2px solid var(--border);
+      position: sticky;
+      top: 0;
+      white-space: nowrap;
+    }
+    
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    tr:hover td {
+      background: rgba(34, 211, 238, 0.05);
+    }
+    
+    .row-num {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      width: 50px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-dim);
+    }
+    
+    .empty-state .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    .tips {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 1rem;
+    }
+    
+    .tips code {
+      background: var(--bg-input);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+    }
+    
+    .query-stats {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="logo">🦆</span>
+      <div>
+        <h1>DuckDB CSV Explorer</h1>
+        <p class="subtitle">Query CSV files with SQL, right in your browser</p>
+      </div>
+    </header>
+    
+    <!-- Status -->
+    <div id="initStatus" class="status loading">
+      <div class="spinner"></div>
+      <span>Initializing DuckDB WebAssembly...</span>
+    </div>
+    
+    <!-- Data Source -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📁</span>
+        <span>Data Source</span>
+      </div>
+      
+      <div class="input-group">
+        <input type="text" id="csvUrl" placeholder="Enter CSV URL (e.g., https://example.com/data.csv)">
+        <button id="loadUrlBtn" onclick="loadFromUrl()" disabled>Load URL</button>
+      </div>
+      
+      <div class="divider">or</div>
+      
+      <div class="input-group">
+        <div class="file-input-wrapper">
+          <button class="btn-secondary" id="fileBtn" disabled>📂 Choose Local File</button>
+          <input type="file" id="fileInput" accept=".csv,.tsv,.txt" onchange="loadFromFile(event)">
+        </div>
+        <span id="fileName" style="color: var(--text-dim); font-size: 0.875rem; align-self: center;"></span>
+      </div>
+      
+      <div class="tips">
+        <strong>Note:</strong> Remote URLs may be blocked by CORS. If a URL doesn't work, try downloading the file and uploading it locally.
+      </div>
+    </div>
+    
+    <!-- Query -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">⚡</span>
+        <span>SQL Query</span>
+      </div>
+      
+      <textarea id="queryInput" placeholder="SELECT * FROM data LIMIT 10">SELECT * FROM data LIMIT 10</textarea>
+      
+      <div style="display: flex; gap: 0.75rem; margin-top: 1rem; align-items: center;">
+        <button id="runQueryBtn" onclick="runQuery()" disabled>Run Query</button>
+        <span class="query-stats" id="queryStats"></span>
+      </div>
+      
+      <div class="tips" style="margin-top: 1rem;">
+        <strong>Tips:</strong> Your data is available as <code>data</code>. Try <code>SELECT COUNT(*) FROM data</code> or <code>DESCRIBE data</code>
+      </div>
+    </div>
+    
+    <!-- Results -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📊</span>
+        <span>Results</span>
+      </div>
+      
+      <div id="results">
+        <div class="empty-state">
+          <div class="icon">🦆</div>
+          <p>Load a CSV file and run a query to see results</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DuckDB WASM -->
+  <script type="importmap">
+  {
+    "imports": {
+      "@duckdb/duckdb-wasm": "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser.mjs",
+      "apache-arrow": "https://cdn.jsdelivr.net/npm/apache-arrow@18.1.0/+esm"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as duckdb from '@duckdb/duckdb-wasm';
+
+    let db = null;
+    let conn = null;
+    let dataLoaded = false;
+
+    // Initialize DuckDB
+    async function initDuckDB() {
+      const statusEl = document.getElementById('initStatus');
+
+      try {
+        // Use the MVP bundle (smaller, good for demos)
+        const bundle = await duckdb.selectBundle({
+          mvp: {
+            mainModule: '/duckdb-wasm/duckdb-mvp.wasm',
+            mainWorker: '/duckdb-wasm/duckdb-browser-mvp.worker.js'
+          }
+        });
+
+        const worker = new Worker(bundle.mainWorker);
+        const logger = new duckdb.ConsoleLogger();
+
+        db = new duckdb.AsyncDuckDB(logger, worker);
+        await db.instantiate(bundle.mainModule);
+
+        conn = await db.connect();
+
+        // Enable buttons
+        document.getElementById('loadUrlBtn').disabled = false;
+        document.getElementById('fileBtn').disabled = false;
+
+        statusEl.className = 'status success';
+        statusEl.innerHTML = '✓ DuckDB ready! Load a CSV to get started.';
+
+      } catch (error) {
+        statusEl.className = 'status error';
+        statusEl.innerHTML = `✗ Failed to initialize DuckDB: ${error.message}`;
+        console.error('DuckDB init error:', error);
+      }
+    }
+
+    // Load CSV from URL
+    async function loadFromUrl() {
+      const url = document.getElementById('csvUrl').value.trim();
+      if (!url) {
+        showStatus('Please enter a URL', 'warning');
+        return;
+      }
+      
+      showStatus('Fetching CSV from URL...', 'loading');
+      
+      try {
+        // Drop existing table if present
+        await conn.query('DROP TABLE IF EXISTS data');
+        
+        // Try to load directly via DuckDB's httpfs
+        // This may fail due to CORS
+        await conn.query(`
+          CREATE TABLE data AS 
+          SELECT * FROM read_csv_auto('${url}')
+        `);
+        
+        dataLoaded = true;
+        document.getElementById('runQueryBtn').disabled = false;
+        document.getElementById('fileName').textContent = '';
+        
+        // Get row count
+        const countResult = await conn.query('SELECT COUNT(*) as cnt FROM data');
+        const count = countResult.toArray()[0].cnt;
+        
+        showStatus(`✓ Loaded ${Number(count).toLocaleString()} rows from URL`, 'success');
+        
+        // Auto-run the default query
+        runQuery();
+        
+      } catch (error) {
+        console.error('URL load error:', error);
+        
+        if (error.message.includes('HTTP') || error.message.includes('CORS') || error.message.includes('fetch')) {
+          showStatus('✗ CORS blocked! The server doesn\'t allow browser requests. Try downloading the file and uploading it instead.', 'error');
+        } else {
+          showStatus(`✗ Error: ${error.message}`, 'error');
+        }
+      }
+    }
+    
+    // Load CSV from local file
+    async function loadFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      showStatus(`Loading ${file.name}...`, 'loading');
+      document.getElementById('fileName').textContent = file.name;
+      
+      try {
+        const text = await file.text();
+        
+        // Drop existing table
+        await conn.query('DROP TABLE IF EXISTS data');
+        
+        // Register the CSV data with DuckDB
+        await db.registerFileText(file.name, text);
+        
+        // Create table from the file
+        await conn.query(`
+          CREATE TABLE data AS 
+          SELECT * FROM read_csv_auto('${file.name}')
+        `);
+        
+        dataLoaded = true;
+        document.getElementById('runQueryBtn').disabled = false;
+        document.getElementById('csvUrl').value = '';
+        
+        // Get row count
+        const countResult = await conn.query('SELECT COUNT(*) as cnt FROM data');
+        const count = countResult.toArray()[0].cnt;
+        
+        showStatus(`✓ Loaded ${Number(count).toLocaleString()} rows from ${file.name}`, 'success');
+        
+        // Auto-run the default query
+        runQuery();
+        
+      } catch (error) {
+        showStatus(`✗ Error loading file: ${error.message}`, 'error');
+        console.error('File load error:', error);
+      }
+    }
+    
+    // Run SQL query
+    async function runQuery() {
+      const query = document.getElementById('queryInput').value.trim();
+      if (!query) {
+        showStatus('Please enter a query', 'warning');
+        return;
+      }
+      
+      if (!dataLoaded) {
+        showStatus('Please load a CSV file first', 'warning');
+        return;
+      }
+      
+      const statsEl = document.getElementById('queryStats');
+      statsEl.textContent = 'Running...';
+      
+      const startTime = performance.now();
+      
+      try {
+        const result = await conn.query(query);
+        const elapsed = ((performance.now() - startTime) / 1000).toFixed(3);
+        
+        const rows = result.toArray();
+        const columns = result.schema.fields.map(f => f.name);
+        
+        statsEl.textContent = `${rows.length} rows returned in ${elapsed}s`;
+        
+        renderResults(columns, rows);
+        
+      } catch (error) {
+        statsEl.textContent = '';
+        document.getElementById('results').innerHTML = `
+          <div class="status error">
+            <span>✗ Query error: ${error.message}</span>
+          </div>
+        `;
+        console.error('Query error:', error);
+      }
+    }
+    
+    // Render results table
+    function renderResults(columns, rows) {
+      const resultsEl = document.getElementById('results');
+      
+      if (rows.length === 0) {
+        resultsEl.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>Query returned no results</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '<div class="results-wrapper"><table><thead><tr>';
+      html += '<th class="row-num">#</th>';
+      
+      for (const col of columns) {
+        html += `<th>${escapeHtml(col)}</th>`;
+      }
+      
+      html += '</tr></thead><tbody>';
+      
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        html += '<tr>';
+        html += `<td class="row-num">${i + 1}</td>`;
+        
+        for (const col of columns) {
+          let val = row[col];
+          if (val === null || val === undefined) {
+            val = '<span style="color: var(--text-dim); font-style: italic;">NULL</span>';
+          } else {
+            val = escapeHtml(String(val));
+          }
+          html += `<td title="${escapeHtml(String(row[col]))}">${val}</td>`;
+        }
+        
+        html += '</tr>';
+      }
+      
+      html += '</tbody></table></div>';
+      resultsEl.innerHTML = html;
+    }
+    
+    // Show status message
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('initStatus');
+      statusEl.className = `status ${type}`;
+      
+      if (type === 'loading') {
+        statusEl.innerHTML = `<div class="spinner"></div><span>${message}</span>`;
+      } else {
+        statusEl.innerHTML = `<span>${message}</span>`;
+      }
+    }
+    
+    // Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // Handle Enter key in query textarea
+    document.getElementById('queryInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        runQuery();
+      }
+    });
+
+    // Make functions globally accessible
+    window.loadFromUrl = loadFromUrl;
+    window.loadFromFile = loadFromFile;
+    window.runQuery = runQuery;
+
+    // Initialize on load
+    initDuckDB();
+  </script>
+</body>
+</html>
