@@ -1,2 +1,8 @@
 .idea
 .DS_Store
+
+# Test data files
+*.csv
+
+# Playwright screenshots
+.playwright-mcp/
