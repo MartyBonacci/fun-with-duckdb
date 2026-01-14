@@ -4,12 +4,12 @@ A powerful, browser-based CSV exploration tool powered by DuckDB WebAssembly. Qu
 
 ## Features
 
-- 🚀 **Instant CSV loading** - Stream remote files without full downloads
+- 🚀 **Easy CSV loading** - Load from URLs or local files with a single click
 - 💪 **Full SQL support** - Leverage DuckDB's complete SQL capabilities
 - 🔒 **100% client-side** - Your data never leaves your browser
 - ⚡ **Blazing fast** - Query millions of rows in milliseconds
 - 🎨 **Beautiful UI** - Modern dark theme with syntax highlighting
-- 📁 **Flexible input** - Load from URLs or local files
+- 📁 **Flexible input** - Works with any CORS-enabled URL or local file
 
 ## Quick Start
 

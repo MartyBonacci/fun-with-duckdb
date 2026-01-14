@@ -17,30 +17,41 @@ This is a browser-based CSV exploration tool using DuckDB WebAssembly. It's a si
   - ES Modules with import maps for dependency resolution
 
 **Core Components**:
-- `initDuckDB()`: Initializes DuckDB WebAssembly with the MVP bundle (smaller, optimized for demos)
-- `loadFromUrl()`: Loads CSV from remote URL via DuckDB's built-in HTTP support (may be blocked by CORS)
+- `initDuckDB()`: Initializes DuckDB WebAssembly with MVP bundle and configures httpfs extension for HTTP access
+- `loadFromUrl()`: Uses DuckDB's `read_csv_auto()` directly on HTTP URLs via httpfs extension
 - `loadFromFile()`: Loads CSV from local file upload using `db.registerFileText()`
 - `runQuery()`: Executes SQL queries against the loaded data table (named `data`)
 - `renderResults()`: Generates HTML table from query results
 
 **Data Flow**:
 1. User provides CSV (URL or file upload)
-2. CSV is registered with DuckDB and loaded into a table named `data`
-3. User writes SQL queries against the `data` table
-4. Results are rendered in an HTML table with styling
+2. For URLs: DuckDB's httpfs extension streams CSV directly from HTTP source
+3. For files: Content is registered with DuckDB via `db.registerFileText()`
+4. DuckDB creates a table named `data` using `read_csv_auto()`
+5. User writes SQL queries against the `data` table
+6. Results are rendered in an HTML table with styling
 
 **Key Technical Details**:
 - DuckDB connection is stored in module-scoped `conn` variable (exposed globally via window object)
 - All CSV data is loaded into a table named `data` (previous table is dropped on new load)
-- Uses DuckDB's `read_csv_auto()` for automatic CSV parsing with HTTP streaming support
+- httpfs extension is installed and loaded during initialization for HTTP file access
+- HTTP settings configured: `enable_http_metadata_cache=true`, `http_timeout=30000ms`
+- Uses DuckDB's `read_csv_auto()` for automatic CSV parsing and type detection
 - Query execution is timed and displays row count + elapsed time
-- CORS limitations on remote URLs are handled with user-friendly messaging
+- CORS/network errors are caught and provide helpful fallback messages
 
 **WASM Loading Strategy**:
 - Local WASM files stored in `duckdb-wasm/` directory to avoid CORS/ORB (Opaque Response Blocking) issues
 - Workers must be same-origin, so CDN URLs cannot be used for worker scripts
 - Import map provides dependency resolution for apache-arrow package
 - Three files required: `duckdb-browser.mjs`, `duckdb-mvp.wasm`, `duckdb-browser-mvp.worker.js`
+
+**HTTP/CSV Loading Strategy**:
+- Uses DuckDB's httpfs extension for native HTTP access to CSV files
+- DuckDB can stream data efficiently and only fetch needed portions for queries
+- Falls back gracefully when servers block HTTP Range requests
+- CORS must be enabled on the server hosting the CSV
+- For problematic URLs, users can download and use local file upload
 
 ## Development
 
